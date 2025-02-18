@@ -261,11 +261,15 @@ OSCAR_VENDORS_INDEX_NAME = f"{INDEX_PREFIX}__vendor"
 OSCAR_PRODUCT_SEARCH_FIELDS = SEARCH_FIELDS + ["upc^2"]
 OSCAR_CATEGORY_SEARCH_FIELDS = SEARCH_FIELDS
 OSCAR_VENDOR_SEARCH_FIELDS = SEARCH_FIELDS + ["name^2", "brand_name^2"]
-ELASTICSEARCH_URL = env("ELASTICSEARCH_URL", default="http://elasticsearch:9200/")
-ELASTICSEARCH_USER = env("ELASTICSEARCH_USER",default="")
-ELASTIC_PASSWORD = env("ELASTIC_PASSWORD",default="")
+ELASTICSEARCH_URL = env("ELASTICSEARCH_URL", default="")
+ELASTICSEARCH_USER = env("ELASTICSEARCH_USER", default="")
+ELASTIC_PASSWORD = env("ELASTIC_PASSWORD", default="")
+
 ELASTICSEARCH_DSL = {
     'default': {
         'hosts': ELASTICSEARCH_URL,
+        'http_auth': (ELASTICSEARCH_USER, ELASTIC_PASSWORD),  # Add authentication
+        'verify_certs': True,  # Change to False if using self-signed certs
     }
 }
+
