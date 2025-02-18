@@ -13,12 +13,12 @@ chunked = get_class("search.utils", "chunked")
 ELASTICSEARCH_URL = getattr(settings, "ELASTICSEARCH_URL", "")
 ELASTICSEARCH_USER = getattr(settings, "ELASTICSEARCH_USER", "elastic")
 ELASTIC_PASSWORD = getattr(settings, "ELASTIC_PASSWORD", "")
-
+print()
 # Create Elasticsearch Client with Authentication
 es = Elasticsearch(
     hosts=[ELASTICSEARCH_URL],
     http_auth=(ELASTICSEARCH_USER, ELASTIC_PASSWORD),
-    verify_certs=False,  # Set to True if using a valid SSL cert
+    verify_certs=True,  # Set to True if using a valid SSL cert
     timeout=60,  # Increase timeout to 60 seconds
     max_retries=5,  # Retry up to 5 times
     retry_on_timeout=True
@@ -26,6 +26,7 @@ es = Elasticsearch(
 
 class Command(BaseCommand):
     help = "Index vendors in Elasticsearch"
+    print("credit: ", ELASTICSEARCH_URL, ELASTICSEARCH_USER, ELASTIC_PASSWORD)
 
     def add_arguments(self, parser):
         parser.add_argument(
