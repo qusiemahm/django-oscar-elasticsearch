@@ -9,16 +9,19 @@ from django.conf import settings
 VendorElasticsearchIndex = get_class("search.api.vendor", "VendorElasticsearchIndex")  # Load ES index class
 chunked = get_class("search.utils", "chunked")
 
-# Fetch Elasticsearch Credentials from Environment Variables
+# Fetch Elasticsearch Credentials
 ELASTICSEARCH_URL = getattr(settings, "ELASTICSEARCH_URL", "")
 ELASTICSEARCH_USER = getattr(settings, "ELASTICSEARCH_USER", "elastic")
 ELASTIC_PASSWORD = getattr(settings, "ELASTIC_PASSWORD", "")
-print()
+
+# 🔍 Debugging: Print credentials (Ensure credentials are loaded)
+print(f"🔍 Debugging: ELASTICSEARCH_URL={ELASTICSEARCH_URL}, ELASTICSEARCH_USER={ELASTICSEARCH_USER}, ELASTIC_PASSWORD={ELASTIC_PASSWORD}")
+
 # Create Elasticsearch Client with Authentication
 es = Elasticsearch(
-    hosts=[ELASTICSEARCH_URL],
-    http_auth=(ELASTICSEARCH_USER, ELASTIC_PASSWORD),
-    verify_certs=True,  # Set to True if using a valid SSL cert
+    [ELASTICSEARCH_URL],
+    basic_auth=(ELASTICSEARCH_USER, ELASTIC_PASSWORD),  # ✅ Use `basic_auth` instead of `http_auth`
+    verify_certs=False,  # Set to True if using a valid SSL cert
     timeout=60,  # Increase timeout to 60 seconds
     max_retries=5,  # Retry up to 5 times
     retry_on_timeout=True
@@ -26,7 +29,6 @@ es = Elasticsearch(
 
 class Command(BaseCommand):
     help = "Index vendors in Elasticsearch"
-    print("credit: ", ELASTICSEARCH_URL, ELASTICSEARCH_USER, ELASTIC_PASSWORD)
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -47,8 +49,14 @@ class Command(BaseCommand):
             return
 
         # Ensure Elasticsearch connection is valid
-        if not es.ping():
-            self.stdout.write(self.style.ERROR("Elasticsearch connection failed. Check credentials and server status."))
+        try:
+            if not es.ping():
+                self.stdout.write(self.style.ERROR("❌ Elasticsearch connection failed. Check credentials and server status."))
+                return
+            else:
+                self.stdout.write(self.style.SUCCESS("✅ Elasticsearch connection successful."))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"❌ Elasticsearch ping error: {e}"))
             return
 
         try:
@@ -56,6 +64,6 @@ class Command(BaseCommand):
                 vendor_objects = Vendor.objects.filter(id__in=chunk)
                 VendorElasticsearchIndex().update_or_create(vendor_objects)
 
-            self.stdout.write(self.style.SUCCESS(f"Indexed {vendors.count()} vendors successfully."))
+            self.stdout.write(self.style.SUCCESS(f"✅ Indexed {vendors.count()} vendors successfully."))
         except Exception as e:
-            self.stderr.write(self.style.ERROR(f"Error indexing vendors: {e}"))
+            self.stderr.write(self.style.ERROR(f"❌ Error indexing vendors: {e}"))

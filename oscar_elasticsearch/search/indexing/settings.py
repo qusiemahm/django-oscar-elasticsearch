@@ -269,7 +269,7 @@ ELASTICSEARCH_DSL = {
     'default': {
         'hosts': ELASTICSEARCH_URL,
         'http_auth': (ELASTICSEARCH_USER, ELASTIC_PASSWORD),  # Add authentication
-        'verify_certs': True,  # Change to False if using self-signed certs
+        'verify_certs': False,  # Change to False if using self-signed certs
     }
 }
 

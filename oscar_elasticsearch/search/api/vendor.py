@@ -1,8 +1,9 @@
+import os
 from elasticsearch import Elasticsearch
 from odin.codecs import dict_codec
 from django.db.models import QuerySet
 from oscar.core.loading import get_class, get_model, get_classes
-from oscar_elasticsearch.search import settings
+from django.conf import settings
 
 # Get index settings for vendors
 (
@@ -24,6 +25,20 @@ BaseElasticSearchApi = get_class("search.api.search", "BaseElasticSearchApi")
 ESModelIndexer = get_class("search.indexing.indexer", "ESModelIndexer")
 Vendor = get_model("vendor", "Vendor")
 
+# Load Elasticsearch credentials from Django settings
+ELASTICSEARCH_URL = getattr(settings, "ELASTICSEARCH_URL", "")
+ELASTICSEARCH_USER = getattr(settings, "ELASTICSEARCH_USER", "elastic")
+ELASTIC_PASSWORD = getattr(settings, "ELASTIC_PASSWORD", "")
+
+# Ensure Elasticsearch authentication is set
+es = Elasticsearch(
+    hosts=[ELASTICSEARCH_URL],
+    http_auth=(ELASTICSEARCH_USER, ELASTIC_PASSWORD),  # ✅ Add authentication
+    verify_certs=False,  # Set to True if using a valid SSL certificate
+    timeout=60,  # Increase timeout to 60 seconds
+    max_retries=5,  # Retry up to 5 times
+    retry_on_timeout=True
+)
 
 class VendorElasticsearchIndex(BaseElasticSearchApi, ESModelIndexer):
     """
@@ -44,57 +59,56 @@ class VendorElasticsearchIndex(BaseElasticSearchApi, ESModelIndexer):
         """
         if filters is not None:
             return filters
-
         return [{"term": {"registration_status": "approved"}}]  # Only approved vendors
 
     def create_index_if_missing(self):
         """
         Check if the Elasticsearch index exists, and create it if it does not.
         """
-        from django.conf import settings
-
-        es = Elasticsearch(settings.ELASTICSEARCH_DSL['default']['hosts'])
-
         alias_name = self.INDEX_NAME  # Alias for searching
         new_index_name = f"{alias_name}_001"  # Versioned index name
 
-        # Check if alias exists
-        alias_exists = es.indices.exists_alias(name=alias_name)
+        try:
+            alias_exists = es.indices.exists_alias(name=alias_name)
 
-        if alias_exists:
-            print(f"✅ Alias '{alias_name}' already exists. No need to create an index.")
-            return
+            if alias_exists:
+                print(f"✅ Alias '{alias_name}' already exists. No need to create an index.")
+                return
 
-        print(f"🔍 Alias '{alias_name}' not found. Checking index...")
+            print(f"🔍 Alias '{alias_name}' not found. Checking index...")
 
-        # Check if the versioned index exists
-        if not es.indices.exists(index=new_index_name):
-            print(f"🔍 Index '{new_index_name}' not found. Creating it...")
+            # Check if the versioned index exists
+            if not es.indices.exists(index=new_index_name):
+                print(f"🔍 Index '{new_index_name}' not found. Creating it...")
 
-            es.indices.create(
-                index=new_index_name,
-                body={
-                    "settings": self.INDEX_SETTINGS,
-                    "mappings": self.INDEX_MAPPING,
-                },
-            )
-            print(f"✅ Index '{new_index_name}' created successfully.")
+                es.indices.create(
+                    index=new_index_name,
+                    body={
+                        "settings": self.INDEX_SETTINGS,
+                        "mappings": self.INDEX_MAPPING,
+                    },
+                )
+                print(f"✅ Index '{new_index_name}' created successfully.")
 
-        # Ensure alias points to the new index
-        es.indices.update_aliases(body={
-            "actions": [
-                {"add": {"index": new_index_name, "alias": alias_name}}
-            ]
-        })
-        print(f"✅ Alias '{alias_name}' now points to '{new_index_name}'.")
-
+            # Ensure alias points to the new index
+            es.indices.update_aliases(body={
+                "actions": [
+                    {"add": {"index": new_index_name, "alias": alias_name}}
+                ]
+            })
+            print(f"✅ Alias '{alias_name}' now points to '{new_index_name}'.")
+        except Exception as e:
+            print(f"❌ Error creating Elasticsearch index: {e}")
 
     def update_or_create(self, objects):
         """
-        Override `update_or_create` to ensure the index exists before indexing vendors.
+        Ensure the index exists before indexing vendors.
         """
         self.create_index_if_missing()
-        super().update_or_create(objects)
+        try:
+            super().update_or_create(objects)
+        except Exception as e:
+            print(f"❌ Error updating or creating vendor index: {e}")
 
     def make_documents(self, objects):
         """
@@ -132,9 +146,8 @@ class VendorElasticsearchIndex(BaseElasticSearchApi, ESModelIndexer):
             doc._source.suggest = {
                 "input": [doc._source.brand_name_en, doc._source.brand_name_ar],
                 "weight": 10,
-                "contexts": {"status": ["approved" if doc._source.is_valid else "pending"]}
+                "contexts": {"status": ["approved" if doc._source.is_valid else "pending"]},
             }
-
 
         # Convert to Elasticsearch document format
         return dict_codec.dump(vendor_document_resources, include_type_field=False)
@@ -174,5 +187,3 @@ class VendorElasticsearchIndex(BaseElasticSearchApi, ESModelIndexer):
         )
 
         return search_response
-
-
