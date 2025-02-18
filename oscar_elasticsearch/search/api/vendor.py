@@ -50,7 +50,6 @@ class VendorElasticsearchIndex(BaseElasticSearchApi, ESModelIndexer):
     INDEX_MAPPING = get_vendors_index_mapping()
     INDEX_SETTINGS = get_oscar_index_settings()
     SEARCH_FIELDS = OSCAR_VENDOR_SEARCH_FIELDS
-    SUGGESTION_FIELD_NAME = settings.SUGGESTION_FIELD_NAME
     context = {}
 
     def get_filters(self, filters):
