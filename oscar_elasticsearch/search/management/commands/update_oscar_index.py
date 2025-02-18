@@ -6,4 +6,4 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         call_command("update_index_products")
         call_command("update_index_categories")
-        call_command("update_index_vendor")
+        call_command("update_vendor_index")
