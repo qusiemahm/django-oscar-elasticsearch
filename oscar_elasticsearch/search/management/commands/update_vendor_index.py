@@ -3,20 +3,21 @@ from django.core.management.base import BaseCommand
 from server.apps.vendor.models import Vendor
 from oscar.core.loading import get_class
 from elasticsearch import Elasticsearch
+from django.conf import settings
 
 # Load Oscar Elasticsearch Indexing utilities
 VendorElasticsearchIndex = get_class("search.api.vendor", "VendorElasticsearchIndex")  # Load ES index class
 chunked = get_class("search.utils", "chunked")
 
 # Fetch Elasticsearch Credentials from Environment Variables
-ELASTICSEARCH_URL = os.getenv("ELASTICSEARCH_URL", "https://jay-search.178.18.244.35.sslip.io:443")
-ELASTICSEARCH_USER = os.getenv("ELASTICSEARCH_USER", "your_username")  # Replace with actual username
-ELASTICSEARCH_PASSWORD = os.getenv("ELASTIC_PASSWORD", "your_password")  # Replace with actual password
+ELASTICSEARCH_URL = getattr(settings, "ELASTICSEARCH_URL", "")
+ELASTICSEARCH_USER = getattr(settings, "ELASTICSEARCH_USER", "elastic")
+ELASTIC_PASSWORD = getattr(settings, "ELASTIC_PASSWORD", "")
 
 # Create Elasticsearch Client with Authentication
 es = Elasticsearch(
     hosts=[ELASTICSEARCH_URL],
-    http_auth=(ELASTICSEARCH_USER, ELASTICSEARCH_PASSWORD),
+    http_auth=(ELASTICSEARCH_USER, ELASTIC_PASSWORD),
     verify_certs=False,  # Set to True if using a valid SSL cert
     timeout=60,  # Increase timeout to 60 seconds
     max_retries=5,  # Retry up to 5 times
