@@ -1,6 +1,7 @@
 import odin
 
 from django.utils.html import strip_tags
+from odin.fields import StringField
 
 from oscar.core.loading import get_class, get_model
 
@@ -19,7 +20,9 @@ Category = get_model("catalogue", "Category")
 class CategoryElasticSearchResource(OscarElasticSearchResourceMixin):
     full_name: str
     full_slug: str
-
+    name: str = StringField()
+    name_en: str = StringField()
+    name_ar: str = StringField()
 
 class CategoryMapping(OscarBaseMapping):
     from_resource = CategoryResource

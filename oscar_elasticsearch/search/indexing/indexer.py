@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from django.utils.crypto import get_random_string
 from django.utils.text import format_lazy
 from django.utils.encoding import force_str
+from elasticsearch.helpers import BulkIndexError
 
 from oscar.core.loading import get_class
 
@@ -49,7 +50,13 @@ class Indexer(object):
             doc["_index"] = _index
             docs.append(doc)
 
-        bulk(es, docs, ignore=[400])
+        try:
+            bulk(es, docs, ignore=[400])
+        except BulkIndexError as e:
+            print("🔥 Bulk Indexing Failed! Errors:")
+            for error in e.errors:
+                print(error)  # Print each failed document's error message
+            raise
 
     def get_current_alias(self):
         aliasses = list(

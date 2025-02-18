@@ -1,6 +1,7 @@
 from oscar.core.loading import get_model, get_class
 
 from oscar_elasticsearch.search import settings
+from server.apps.vendor.models import Vendor
 
 chunked = get_class("search.utils", "chunked")
 Product = get_model("catalogue", "Product")
@@ -10,7 +11,24 @@ ProductElasticsearchIndex = get_class("search.api.product", "ProductElasticsearc
 CategoryElasticsearchIndex = get_class(
     "search.api.category", "CategoryElasticsearchIndex"
 )
+VendorElasticsearchIndex = get_class("search.api.vendor", "VendorElasticsearchIndex")  # <-- your custom class
 
+
+def update_index_vendor(vendor_id):
+    """
+    Update or create the specified vendor in the Elasticsearch index.
+    """
+    if isinstance(vendor_id, list):
+        return update_index_vendors(vendor_id)  # Already a list, pass it directly
+    return update_index_vendors([vendor_id])
+
+def update_index_vendors(vendor_ids):
+    """
+    Bulk update or create the given vendor IDs.
+    """
+    for chunk in chunked(vendor_ids, settings.INDEXING_CHUNK_SIZE):
+        vendors = Vendor.objects.filter(id__in=chunk)
+        VendorElasticsearchIndex().update_or_create(vendors)
 
 def update_index_category(category_id, update_products=True):
     update_index_categories([category_id])

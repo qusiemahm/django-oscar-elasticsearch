@@ -101,6 +101,11 @@ def get_index_settings(MAX_GRAM):
                         "max_gram_truncate",
                     ],
                 },
+                "edge_ngram_analyzer": {
+                    "type": "custom",
+                    "tokenizer": "edge_ngram_tokenizer",
+                    "filter": ["lowercase"]
+                },
             },
             "tokenizer": {
                 "ngram_tokenizer": {"type": "ngram", "min_gram": 3, "max_gram": 15},
@@ -109,6 +114,12 @@ def get_index_settings(MAX_GRAM):
                     "min_gram": 2,
                     "max_gram": MAX_GRAM,
                 },
+                "edge_ngram_tokenizer": {
+                    "type": "edge_ngram",
+                    "min_gram": 2,
+                    "max_gram": MAX_GRAM,
+                    "token_chars": ["letter", "digit"]
+                }
             },
             "filter": {
                 "ngram": {"type": "ngram", "min_gram": 3, "max_gram": MAX_GRAM},

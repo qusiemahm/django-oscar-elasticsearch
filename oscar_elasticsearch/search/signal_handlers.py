@@ -11,6 +11,8 @@ Category = get_model("catalogue", "Category")
 StockRecord = get_model("partner", "StockRecord")
 UpdateIndex = get_class("search.update", "UpdateIndex")
 ProductElasticsearchIndex = get_class("search.api.product", "ProductElasticsearchIndex")
+Vendor = get_model("vendor", "Vendor")
+VendorElasticsearchIndex = get_class("search.api.vendor", "VendorElasticsearchIndex")
 
 update_index = UpdateIndex()
 
@@ -99,4 +101,46 @@ def deregister_signal_handlers():
     if settings.HANDLE_STOCKRECORD_CHANGES:
         post_save.disconnect(stockrecord_change_handler, sender=StockRecord)
         post_delete.disconnect(stockrecord_post_delete_handler, sender=StockRecord)
+    request_finished.disconnect(update_index.synchronize_searchindex)
+
+def push_vendor_update(instance):
+    """
+    Push vendor update to Elasticsearch (similar to how products/categories are updated).
+    """
+    update_index.push_vendor(str(instance.pk))
+
+
+def vendor_post_save_signal_handler(sender, instance, **kwargs):
+    """
+    When a vendor is added or updated, index it in Elasticsearch.
+    """
+    if kwargs.get("raw", False):
+        return
+
+    push_vendor_update(instance)
+
+
+def vendor_post_delete_signal_handler(sender, instance, **kwargs):
+    """
+    When a vendor is deleted, remove it from Elasticsearch.
+    """
+    if kwargs.get("raw", False):
+        return
+
+    VendorElasticsearchIndex().delete(instance.pk)
+
+def register_signal_handlers():
+    """
+    Register vendor signal handlers (same way as product/category).
+    """
+    post_save.connect(vendor_post_save_signal_handler, sender=Vendor)
+    post_delete.connect(vendor_post_delete_signal_handler, sender=Vendor)
+    request_finished.connect(update_index.synchronize_searchindex)
+
+def deregister_signal_handlers():
+    """
+    Deregister vendor signal handlers (useful for bulk imports).
+    """
+    post_save.disconnect(vendor_post_save_signal_handler, sender=Vendor)
+    post_delete.disconnect(vendor_post_delete_signal_handler, sender=Vendor)
     request_finished.disconnect(update_index.synchronize_searchindex)

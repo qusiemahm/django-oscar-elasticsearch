@@ -168,3 +168,31 @@ class ProductMapping(OscarBaseMapping):
     def parent_id(self):
         if self.source.parent:
             return self.source.parent.id
+
+    @odin.map_field(from_field="title_en", to_field="title_en")
+    def map_title_en(self, value):
+        return value
+
+    @odin.map_field(from_field="title_ar", to_field="title_ar")
+    def map_title_ar(self, value):
+        return value
+
+    @odin.map_field(from_field="description_en", to_field="description_en")
+    def map_description_en(self, value):
+        return value
+
+    @odin.map_field(from_field="description_ar", to_field="description_ar")
+    def map_description_ar(self, value):
+        return value
+    
+    @odin.assign_field(to_list=True)
+    def images(self):
+        """
+        Retrieves product images as a list of dictionaries containing image URLs and captions.
+        """
+        if hasattr(self.source, "images"):
+            return [
+                {"url": img.original, "caption": img.caption}
+                for img in self.source.images  # ✅ Removed `.all()` since `images` is a list
+            ]
+        return []

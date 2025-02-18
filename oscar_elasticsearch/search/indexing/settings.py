@@ -7,10 +7,20 @@ from oscar_elasticsearch.search.settings import (
     SEARCH_FIELDS,
 )
 
+import os
+import environ
+from pathlib import Path
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
+
 
 def get_oscar_index_settings():
     return get_index_settings(MAX_GRAM)
-
 
 OSCAR_INDEX_MAPPING = {
     "properties": {
@@ -68,7 +78,29 @@ def get_products_index_mapping():
     OSCAR_PRODUCTS_INDEX_MAPPING = OSCAR_INDEX_MAPPING.copy()
 
     OSCAR_PRODUCTS_INDEX_MAPPING["properties"].update(
-        {
+        {   
+            "title_en": {
+                "type": "text",
+                "analyzer": "lowercasewhitespace",  # or whichever custom analyzer you want
+                "copy_to": "_all_text",
+                "fields": {"raw": {"type": "keyword"}},
+            },
+            "title_ar": {
+                "type": "text",
+                "analyzer": "lowercasewhitespace", 
+                "copy_to": "_all_text",
+                "fields": {"raw": {"type": "keyword"}},
+            },
+            "description_en": {
+                "type": "text",
+                "analyzer": "standard",
+                "copy_to": "_all_text",
+            },
+            "description_ar": {
+                "type": "text",
+                "analyzer": "standard",
+                "copy_to": "_all_text",
+            },
             "upc": {
                 "type": "text",
                 "analyzer": "technical_analyzer",
@@ -113,12 +145,127 @@ def get_products_index_mapping():
 def get_categories_index_mapping():
     OSCAR_CATEGORIES_INDEX_MAPPING = OSCAR_INDEX_MAPPING.copy()
     OSCAR_CATEGORIES_INDEX_MAPPING.update(
-        {"properties": {"full_name": {"type": "text"}, "full_slug": {"type": "text"}}}
+        {"properties": 
+            {
+                "full_name": {"type": "text"},
+                "full_slug": {"type": "text"},
+                "name": {
+                    "type": "text",
+                    "analyzer": "lowercasewhitespace",
+                    "copy_to": "_all_text",
+                    "fields": {"raw": {"type": "keyword"}},
+                },
+                "name_en": {
+                    "type": "text",
+                    "analyzer": "lowercasewhitespace",
+                    "copy_to": "_all_text",
+                    "fields": {"raw": {"type": "keyword"}},
+                },
+                "name_ar": {
+                    "type": "text",
+                    "analyzer": "lowercasewhitespace", 
+                    "copy_to": "_all_text",
+                    "fields": {"raw": {"type": "keyword"}},
+                },
+            }
+        }
     )
     return OSCAR_CATEGORIES_INDEX_MAPPING
 
+OSCAR_VENDORS_INDEX_MAPPING = {
+    "properties": {
+        "id": {"type": "integer", "store": True},
+        "user_id": {"type": "integer", "store": True},
+        "name": {
+            "type": "text",
+            "analyzer": "lowercasewhitespace",
+            "fielddata": True,
+            "copy_to": "_all_text",
+            "fields": {"raw": {"type": "keyword"}},
+        },
+        "brand_name": {
+            "type": "text",
+            "analyzer": "lowercasewhitespace",
+            "copy_to": "_all_text",
+            "fields": {"raw": {"type": "keyword"}},
+        },
+        "brand_name_en": {
+            "type": "text",
+            "analyzer": "lowercasewhitespace",  # For partial matching
+            "search_analyzer": "standard",      # Search with exact terms
+            "fields": {
+                "raw": {"type": "keyword"},     # Exact matches
+                "autocomplete": {               # Dedicated sub-field for autocomplete
+                    "type": "text",
+                    "analyzer": "edge_ngram_analyzer",
+                    "search_analyzer": "standard"
+                }
+            }
+        },
+        "brand_name_ar": {
+            "type": "text",
+            "analyzer": "lowercasewhitespace",
+            "search_analyzer": "standard",
+            "fields": {
+                "raw": {"type": "keyword"},
+                "autocomplete": {
+                    "type": "text",
+                    "analyzer": "edge_ngram_analyzer",
+                    "search_analyzer": "standard"
+                }
+            }
+        },
+
+        "search_title": {
+            "type": "text",
+            "analyzer": "standard",
+            "search_analyzer": "standard",
+        },
+        "suggest": {
+                "type": "completion",
+                "contexts": AUTOCOMPLETE_CONTEXTS,
+        },
+        "registration_status": {"type": "keyword"},
+        "rating": {"type": "float"},
+        "total_ratings": {"type": "integer"},
+        "date_created": {"type": "date"},
+        "date_updated": {"type": "date"},
+        "is_valid": {"type": "boolean"},
+        "tags": {
+            "type": "nested",
+            "properties": {
+                "id": {"type": "integer"},
+                "name": {"type": "text", "copy_to": "_all_text"},
+            },
+        },
+        "badges": {
+            "type": "nested",
+            "properties": {
+                "id": {"type": "integer"},
+                "name": {"type": "text"},
+                "color": {"type": "keyword"},
+            },
+        },
+        "suggest": {"type": "completion", "contexts": AUTOCOMPLETE_CONTEXTS},
+        "_all_text": {"type": "text", "analyzer": "standard"},
+    }
+}
+
+def get_vendors_index_mapping():
+    return OSCAR_VENDORS_INDEX_MAPPING
 
 OSCAR_PRODUCTS_INDEX_NAME = "%s__catalogue_product" % INDEX_PREFIX
 OSCAR_CATEGORIES_INDEX_NAME = "%s__catalogue_category" % INDEX_PREFIX
+OSCAR_VENDORS_INDEX_NAME = f"{INDEX_PREFIX}__vendor"
+
 OSCAR_PRODUCT_SEARCH_FIELDS = SEARCH_FIELDS + ["upc^2"]
 OSCAR_CATEGORY_SEARCH_FIELDS = SEARCH_FIELDS
+OSCAR_VENDOR_SEARCH_FIELDS = SEARCH_FIELDS + ["name^2", "brand_name^2"]
+ELASTICSEARCH_URL = env("ELASTICSEARCH_URL", default="http://elasticsearch:9200/")
+ELASTICSEARCH_USER = env("ELASTICSEARCH_USER",default="")
+ELASTIC_PASSWORD = env("ELASTIC_PASSWORD",default="")
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': ELASTICSEARCH_URL,
+    }
+}

@@ -7,6 +7,7 @@ from datetime import datetime
 from oscar.core.loading import get_class
 
 from oscar_odin.fields import DecimalField
+from odin.fields import StringField
 
 from oscar_elasticsearch.search.mappings.mixins import OscarElasticSearchResourceMixin
 
@@ -17,7 +18,9 @@ class CategoryElasticSearchRelatedResource(OscarResource):
     id: int
     description: str
     full_name: str
-
+    name: str = StringField()
+    name_en: str = StringField()
+    name_ar: str = StringField()
 
 class ProductElasticSearchResource(OscarElasticSearchResourceMixin):
     upc: str
@@ -40,3 +43,8 @@ class ProductElasticSearchResource(OscarElasticSearchResourceMixin):
     popularity: int
     status: List[str]
     suggest: List[str]
+    title_en: str = StringField()
+    title_ar: str = StringField()
+    description_en: str = StringField()
+    description_ar: str = StringField()
+    images: List[dict]
