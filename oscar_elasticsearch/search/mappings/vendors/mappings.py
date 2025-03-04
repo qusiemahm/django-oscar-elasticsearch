@@ -24,8 +24,8 @@ class VendorMapping(OscarBaseMapping):
         odin.define(from_field="user_id", to_field="user_id"),
         odin.define(from_field="registration_date", to_field="registration_date"),
         odin.define(from_field="registration_status", to_field="registration_status"),
-        odin.define(from_field="rating", to_field="rating"),
-        odin.define(from_field="total_ratings", to_field="total_ratings"),
+        # odin.define(from_field="rating", to_field="rating"),
+        # odin.define(from_field="total_ratings", to_field="total_ratings"),
         odin.define(from_field="is_valid", to_field="is_valid"),
     )
 
