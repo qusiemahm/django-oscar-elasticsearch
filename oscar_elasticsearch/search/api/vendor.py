@@ -159,7 +159,7 @@ class VendorElasticsearchIndex(BaseElasticSearchApi, ESModelIndexer):
         search_query = {
             "bool": {
                 "must": [
-                    {
+                    {   
                         "multi_match": {
                             "query": query_string,
                             "fields": [
@@ -167,7 +167,7 @@ class VendorElasticsearchIndex(BaseElasticSearchApi, ESModelIndexer):
                                 "brand_name_ar.autocomplete^3",
                                 "name.autocomplete^2",
                             ],
-                            "type": "phrase_prefix"  # Match prefixes of terms
+                            "type": "best_fields"  # Match prefixes of terms
                         }
                     }
                 ],
@@ -186,3 +186,5 @@ class VendorElasticsearchIndex(BaseElasticSearchApi, ESModelIndexer):
         )
 
         return search_response
+    
+    
